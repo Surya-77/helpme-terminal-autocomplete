@@ -23,8 +23,6 @@ SYSTEM_INSTRUCTION = """
     Be specific: Ensure the command accurately reflects the user's request.
     Follow the prompt: Only provide the single-line command; do not offer explanations or additional information.
 """
-# API_PROVIDER = os.getenv("API_PROVIDER")
-# API_KEY = os.getenv("API_KEY")
 
 
 def init_setup() -> None:
@@ -32,10 +30,10 @@ def init_setup() -> None:
 
     load_dotenv()
     API_PROVIDER = os.getenv("API_PROVIDER")
-    API_KEY = os.getenv("API_KEY")
 
     try:
         if API_PROVIDER == "google-ai-studio":
+            API_KEY = os.getenv("GOOGLE_AI_STUDIO_API_KEY")
             try:
                 genai.configure(api_key=API_KEY)
             except Exception as e:
@@ -43,6 +41,7 @@ def init_setup() -> None:
                     f"An error occurred during {API_PROVIDER} model initialization:\n{e}"
                 )
         elif API_PROVIDER == "groq-cloud":
+            API_KEY = os.getenv("GROQ_API_KEY")
             try:
                 genai.configure(api_key=API_KEY)
             except Exception as e:
@@ -62,7 +61,6 @@ def list_available_models() -> None:
 
     load_dotenv()
     API_PROVIDER = os.getenv("API_PROVIDER")
-    API_KEY = os.getenv("API_KEY")
 
     if API_PROVIDER == "google-ai-studio":
         for model_card in genai.list_models():
@@ -80,9 +78,9 @@ def generate(input_text: str, model_name: str = None) -> str:
 
     load_dotenv()
     API_PROVIDER = os.getenv("API_PROVIDER")
-    API_KEY = os.getenv("GROQ_API_KEY")
 
     if API_PROVIDER == "google-ai-studio":
+        API_KEY = os.getenv("GOOGLE_AI_STUDIO_API_KEY")
         model_name = "gemini-1.5-flash"
         try:
             model = genai.GenerativeModel(
@@ -93,6 +91,7 @@ def generate(input_text: str, model_name: str = None) -> str:
         except Exception as e:
             return f"An error occurred during generation:\n{e}"
     elif API_PROVIDER == "groq-cloud":
+        API_KEY = os.getenv("GROQ_API_KEY")
         model_name = "llama3-70b-8192"
         try:
             client = Groq(
