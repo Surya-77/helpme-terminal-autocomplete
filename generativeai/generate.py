@@ -2,25 +2,31 @@ import os
 from groq import Groq
 import google.generativeai as genai
 
-SYSTEM_INSTRUCTION = """
-    You are a Linux command expert. Your sole purpose is to provide a single-line command that accomplishes the user's request.
 
-    Format:
+class SystemInstruction:
+    def __init__(self) -> None:
+        self.system_instruction = """
+        You are a Linux command expert. Your sole purpose is to provide a single-line command that accomplishes the user's request.
 
-    Input: The user will provide a natural language description of a task they want to accomplish in Linux.
-    Output: You will respond with a single, accurate, and actionable Linux command that fulfills the user's request.
-    Example:
+        Format:
 
-    Input: How do I list all files in the current directory?
-    Output: ls
-    Important Notes:
+        Input: The user will provide a natural language description of a task they want to accomplish in Linux.
+        Output: You will respond with a single, accurate, and actionable Linux command that fulfills the user's request.
+        Example:
 
-    Assume basic Linux knowledge: The user understands fundamental Linux concepts like directories, files, and commands.
-    Prioritize brevity: The command should be as concise as possible.
-    Avoid unnecessary complexity: If multiple commands can achieve the task, choose the simplest and most efficient one.
-    Be specific: Ensure the command accurately reflects the user's request.
-    Follow the prompt: Only provide the single-line command; do not offer explanations or additional information.
-"""
+        Input: How do I list all files in the current directory?
+        Output: ls
+        Important Notes:
+
+        Assume basic Linux knowledge: The user understands fundamental Linux concepts like directories, files, and commands.
+        Prioritize brevity: The command should be as concise as possible.
+        Avoid unnecessary complexity: If multiple commands can achieve the task, choose the simplest and most efficient one.
+        Be specific: Ensure the command accurately reflects the user's request.
+        Follow the prompt: Only provide the single-line command; do not offer explanations or additional information.
+        """
+
+    def get_instruction(self) -> str:
+        return self.system_instruction
 
 
 class TerminalHelper:
@@ -33,8 +39,9 @@ class TerminalHelper:
         self.api_provider = api_provider
         self.api_key = api_key
         self.model_name = model_name
+        self.system_instruction = None
 
-    def setup_model(self) -> None:
+    def set_model(self) -> None:
         """Initialize the generative AI API with the API key from the .env file."""
 
         try:
@@ -56,13 +63,14 @@ class TerminalHelper:
         except Exception as e:
             print(f"An error occurred during initialization:\n{e}")
 
-    def setup_system_prompt(self) -> str:
+    def set_system_prompt(self) -> str:
         """Set the system prompt for the generative AI model."""
-
-        return SYSTEM_INSTRUCTION
+        system_instruction = SystemInstruction().get_instruction()
+        return system_instruction
 
     def init_setup(self) -> None:
-        self.setup_model()
+        self.set_model()
+        self.set_system_prompt()
 
     def list_available_models(self) -> None:
         """List all available models for generative AI."""
@@ -83,7 +91,7 @@ class TerminalHelper:
         if self.api_provider == "google-ai-studio":
             try:
                 model = genai.GenerativeModel(
-                    model_name=self.model_name, system_instruction=SYSTEM_INSTRUCTION
+                    model_name=self.model_name, system_instruction=self.system_instruction
                 )
                 response = model.generate_content(input_text)
                 return response.text
@@ -97,7 +105,7 @@ class TerminalHelper:
                 completion = client.chat.completions.create(
                     model=self.model_name,
                     messages=[
-                        {"role": "system", "content": SYSTEM_INSTRUCTION},
+                        {"role": "system", "content": self.system_instruction},
                         {"role": "user", "content": input_text},
                     ],
                     temperature=0.05,
