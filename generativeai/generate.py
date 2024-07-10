@@ -63,10 +63,9 @@ class TerminalHelper:
         except Exception as e:
             print(f"An error occurred during initialization:\n{e}")
 
-    def set_system_prompt(self) -> str:
+    def set_system_prompt(self) -> None:
         """Set the system prompt for the generative AI model."""
-        system_instruction = SystemInstruction().get_instruction()
-        return system_instruction
+        self.system_instruction = SystemInstruction().get_instruction()
 
     def init_setup(self) -> None:
         self.set_model()
