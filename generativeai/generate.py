@@ -1,8 +1,6 @@
 import os
-from dotenv import load_dotenv
 from groq import Groq
 import google.generativeai as genai
-
 
 SYSTEM_INSTRUCTION = """
     You are a Linux command expert. Your sole purpose is to provide a single-line command that accomplishes the user's request.
@@ -25,90 +23,89 @@ SYSTEM_INSTRUCTION = """
 """
 
 
-def init_setup() -> None:
-    """Initialize the generative AI API with the API key from the .env file."""
+class TerminalHelper:
+    def __init__(
+        self,
+        api_provider: str = None,  # 'google-ai-studio' or 'groq-cloud'
+        api_key: str = None,  # API key for the selected API provider
+        model_name: str = None,  # Model name for the selected API provider
+    ) -> None:
+        self.api_provider = api_provider
+        self.api_key = api_key
+        self.model_name = model_name
 
-    load_dotenv()
-    API_PROVIDER = os.getenv("API_PROVIDER")
+    def setup_model(self) -> None:
+        """Initialize the generative AI API with the API key from the .env file."""
 
-    try:
-        if API_PROVIDER == "google-ai-studio":
-            API_KEY = os.getenv("GOOGLE_AI_STUDIO_API_KEY")
-            try:
-                genai.configure(api_key=API_KEY)
-            except Exception as e:
+        try:
+            if self.api_provider == "google-ai-studio":
+                self.api_key = os.getenv("GOOGLE_AI_STUDIO_API_KEY")
+                try:
+                    genai.configure(api_key=self.api_key)
+                except Exception as e:
+                    print(
+                        f"An error occurred during {self.api_provider} model initialization:\n{e}"
+                    )
+            elif self.api_provider == "groq-cloud":
+                self.api_key = os.getenv("GROQ_API_KEY")
+                pass
+            else:
                 print(
-                    f"An error occurred during {API_PROVIDER} model initialization:\n{e}"
+                    "Invalid API_PROVIDER. Please set the API_PROVIDER to 'google-ai-studio' or 'groq-cloud'."
                 )
-        elif API_PROVIDER == "groq-cloud":
-            API_KEY = os.getenv("GROQ_API_KEY")
-            try:
-                genai.configure(api_key=API_KEY)
-            except Exception as e:
-                print(
-                    f"An error occurred during {API_PROVIDER} model initialization:\n{e}"
-                )
+        except Exception as e:
+            print(f"An error occurred during initialization:\n{e}")
+
+    def setup_system_prompt(self) -> str:
+        """Set the system prompt for the generative AI model."""
+
+        return SYSTEM_INSTRUCTION
+
+    def init_setup(self) -> None:
+        self.setup_model()
+
+    def list_available_models(self) -> None:
+        """List all available models for generative AI."""
+
+        if self.api_provider == "google-ai-studio":
+            for model_card in genai.list_models():
+                print(model_card)
+        elif self.api_provider == "groq-cloud":
+            print("Groq does not provide a list of available models.")
         else:
             print(
                 "Invalid API_PROVIDER. Please set the API_PROVIDER to 'google-ai-studio' or 'groq-cloud'."
             )
-    except Exception as e:
-        print(f"An error occurred during initialization:\n{e}")
 
+    def generate(self, input_text: str) -> str:
+        """Generate a Linux command based on the input text"""
 
-def list_available_models() -> None:
-    """List all available models for generative AI."""
-
-    load_dotenv()
-    API_PROVIDER = os.getenv("API_PROVIDER")
-
-    if API_PROVIDER == "google-ai-studio":
-        for model_card in genai.list_models():
-            print(model_card)
-    elif API_PROVIDER == "groq-cloud":
-        print("Groq does not provide a list of available models.")
-    else:
-        print(
-            "Invalid API_PROVIDER. Please set the API_PROVIDER to 'google-ai-studio' or 'groq-cloud'."
-        )
-
-
-def generate(input_text: str, model_name: str = None) -> str:
-    """Generate a Linux command based on the input text"""
-
-    load_dotenv()
-    API_PROVIDER = os.getenv("API_PROVIDER")
-
-    if API_PROVIDER == "google-ai-studio":
-        API_KEY = os.getenv("GOOGLE_AI_STUDIO_API_KEY")
-        model_name = "gemini-1.5-flash"
-        try:
-            model = genai.GenerativeModel(
-                model_name=model_name, system_instruction=SYSTEM_INSTRUCTION
-            )
-            response = model.generate_content(input_text)
-            return response.text
-        except Exception as e:
-            return f"An error occurred during generation:\n{e}"
-    elif API_PROVIDER == "groq-cloud":
-        API_KEY = os.getenv("GROQ_API_KEY")
-        model_name = "llama3-70b-8192"
-        try:
-            client = Groq(
-                api_key=API_KEY,
-            )
-            completion = client.chat.completions.create(
-                model=model_name,
-                messages=[
-                    {"role": "system", "content": SYSTEM_INSTRUCTION},
-                    {"role": "user", "content": input_text},
-                ],
-                temperature=0.05,
-                max_tokens=128,
-                top_p=1,
-                stream=False,
-                stop=None,
-            )
-            return completion.choices[0].message.content
-        except Exception as e:
-            return f"An error occurred during generation:\n{e}"
+        if self.api_provider == "google-ai-studio":
+            try:
+                model = genai.GenerativeModel(
+                    model_name=self.model_name, system_instruction=SYSTEM_INSTRUCTION
+                )
+                response = model.generate_content(input_text)
+                return response.text
+            except Exception as e:
+                return f"An error occurred during generation:\n{e}"
+        elif self.api_provider == "groq-cloud":
+            try:
+                client = Groq(
+                    api_key=self.api_key,
+                )
+                completion = client.chat.completions.create(
+                    model=self.model_name,
+                    messages=[
+                        {"role": "system", "content": SYSTEM_INSTRUCTION},
+                        {"role": "user", "content": input_text},
+                    ],
+                    temperature=0.05,
+                    max_tokens=128,
+                    top_p=1,
+                    stream=False,
+                    stop=None,
+                )
+                return completion.choices[0].message.content
+            except Exception as e:
+                return f"An error occurred during generation:\n{e}"
